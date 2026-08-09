@@ -1,0 +1,80 @@
+services:
+  # --- Next.js app: dashboard + API routes (/api/markets, /api/match, /api/opportunities/stream, /api/orderbook)
+  - type: web
+    name: albatross-web
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: MOCK_MODE
+        value: "false"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: albatross-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: albatross-redis
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false # set manually in the Render dashboard, never committed
+      - key: KALSHI_API_KEY
+        sync: false
+      - key: KALSHI_SECRET
+        sync: false
+
+  # --- Realtime feed worker: subscribes to Kalshi + Polymarket WS, publishes to Redis.
+  # This is the piece that specifically needs an always-on process rather
+  # than serverless request/response — a background worker is exactly what
+  # that means on Render.
+  - type: worker
+    name: albatross-feed
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 workers/feed.py
+    envVars:
+      - key: MOCK_MODE
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: albatross-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: albatross-redis
+          property: connectionString
+
+  # --- Auto-discovery: batch job, not something that should run on every
+  # page load. Runs hourly against the deployed web service's own /api/match
+  # route so the embedding + LLM-verification logic lives in one place.
+  - type: cron
+    name: albatross-discovery
+    runtime: node
+    plan: starter
+    schedule: "0 * * * *" # hourly, on the hour
+    buildCommand: "echo 'no build needed'"
+    startCommand: >
+      curl -sf -X POST "https://albatross-web.onrender.com/api/match"
+      -H "Authorization: Bearer $CRON_SHARED_SECRET"
+    envVars:
+      - key: CRON_SHARED_SECRET
+        sync: false # set the same value here and on albatross-web; /api/match checks it
+
+  # --- Redis-compatible pub/sub: quotes -> arb detection -> SSE.
+  - type: keyvalue
+    name: albatross-redis
+    plan: starter
+    ipAllowList: [] # private network only; no public internet access needed
+
+databases:
+  # --- Real pgvector, replacing the D1 bag-of-words workaround.
+  - name: albatross-db
+    plan: starter
+    postgresMajorVersion: "16"

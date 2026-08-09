@@ -1,0 +1,38 @@
+[
+  {
+    "id": "fed-decision-july",
+    "title": "Fed decision in July - No Change",
+    "kalshi_ticker": "FED-24JUL-NOCHANGE",
+    "kalshi_url": "https://kalshi.com/markets/kxfeddecision/kxfeddecision-24jul",
+    "polymarket_id": "0x123",
+    "polymarket_url": "https://polymarket.com/event/fed-decision-in-july-181",
+    "category": "economics"
+  },
+  {
+    "id": "nfl-superbowl-winner",
+    "title": "Super Bowl Winner - AFC Champion",
+    "kalshi_ticker": "SUPERBOWL-AFC",
+    "kalshi_url": "https://kalshi.com/markets/superbowl/afc-champion",
+    "polymarket_id": "0x456",
+    "polymarket_url": "https://polymarket.com/event/super-bowl-winner",
+    "category": "sports"
+  },
+  {
+    "id": "btc-100k-eoy",
+    "title": "Bitcoin above $100k by year end",
+    "kalshi_ticker": "BTC-100K-EOY",
+    "kalshi_url": "https://kalshi.com/markets/btc/100k-eoy",
+    "polymarket_id": "0x789",
+    "polymarket_url": "https://polymarket.com/event/btc-100k-eoy",
+    "category": "crypto"
+  },
+  {
+    "id": "election-house-control",
+    "title": "Party control of the House",
+    "kalshi_ticker": "HOUSE-CONTROL",
+    "kalshi_url": "https://kalshi.com/markets/house/control",
+    "polymarket_id": "0xabc",
+    "polymarket_url": "https://polymarket.com/event/house-control",
+    "category": "politics"
+  }
+]

@@ -1,0 +1,12 @@
+
+fastapi
+uvicorn
+redis
+python-dotenv
+requests
+websockets
+playwright
+py-clob-client
+kalshi-python
+openai
+psycopg2-binary
