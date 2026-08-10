@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { impliedProbability, isJuicePick, HIGH_PROBABILITY_THRESHOLD } from '../lib/juice';
 
 type Leg = { venue: string; side: 'YES' | 'NO'; price: number; fee: number };
 
@@ -13,6 +14,7 @@ type Arb = {
   totalCost: number;
   capitalNeeded: number;
   maxSize: number;
+  eventDate?: string; // YYYY-MM-DD, mock mode only for now — see stream route
 };
 
 type Level = { price: number; size: number };
@@ -24,6 +26,8 @@ type Orderbook = {
   polymarket: { yesAsks: Level[]; noAsks: Level[] };
 };
 
+type Tab = 'all' | 'juice';
+
 export default function Dashboard() {
   const [arbs, setArbs] = useState<Map<string, Arb>>(new Map());
   const [connected, setConnected] = useState(false);
@@ -32,6 +36,7 @@ export default function Dashboard() {
   const [expandedPairId, setExpandedPairId] = useState<string | null>(null);
   const [orderbook, setOrderbook] = useState<Orderbook | null>(null);
   const [orderbookLoading, setOrderbookLoading] = useState(false);
+  const [tab, setTab] = useState<Tab>('all');
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -96,19 +101,46 @@ export default function Dashboard() {
     }
   }
 
-  const sorted = Array.from(arbs.values()).sort((a, b) => b.edgeNet - a.edgeNet);
+  const allSorted = useMemo(() => Array.from(arbs.values()).sort((a, b) => b.edgeNet - a.edgeNet), [arbs]);
+
+  // Juice tab: high-conviction picks only — one leg priced as a
+  // near-certain outcome (>= 85% implied probability) AND the event
+  // resolves today. Same idea as the Juice app's "Pick of the Day": surface
+  // the safe, high-confidence edges instead of every coinflip arb.
+  const juicePicks = useMemo(
+    () => allSorted.filter((a) => isJuicePick(a)).sort((a, b) => impliedProbability(b) - impliedProbability(a)),
+    [allSorted]
+  );
+
+  const sorted = tab === 'juice' ? juicePicks : allSorted;
 
   return (
     <div className="min-h-screen bg-black text-white p-6">
       <h1 className="text-3xl font-bold mb-2">Albatross — Kalshi × Polymarket</h1>
-      <p className="text-zinc-400 mb-6">
+      <p className="text-zinc-400 mb-4">
         Real-time fee-aware arbitrage.{' '}
         <span className={connected ? 'text-green-400' : 'text-yellow-500'}>
           {connected ? '● live' : '○ connecting'}
         </span>{' '}
-        · {sorted.length} open
+        · {allSorted.length} open
         {mock ? ' · mock quotes (MOCK_MODE=true)' : mock === false ? ' · live venue feed' : ''}
       </p>
+
+      <div className="flex gap-2 mb-6 border-b border-zinc-800">
+        <TabButton active={tab === 'all'} onClick={() => setTab('all')} label={`All (${allSorted.length})`} />
+        <TabButton
+          active={tab === 'juice'}
+          onClick={() => setTab('juice')}
+          label={`🧃 Juice — Today (${juicePicks.length})`}
+        />
+      </div>
+
+      {tab === 'juice' && (
+        <p className="text-xs text-zinc-500 mb-4">
+          High-conviction picks only: one leg at ≥{(HIGH_PROBABILITY_THRESHOLD * 100).toFixed(0)}% implied
+          probability, event resolving today, still carrying positive net edge.
+        </p>
+      )}
 
       {error && (
         <div className="mb-6 rounded-lg border border-red-900 bg-red-950/50 px-4 py-3 text-sm text-red-300">
@@ -124,7 +156,14 @@ export default function Dashboard() {
               className="w-full p-4 flex justify-between items-center text-left hover:bg-zinc-900 transition-colors"
             >
               <div>
-                <div className="font-semibold">{a.title}</div>
+                <div className="font-semibold flex items-center gap-2">
+                  {a.title}
+                  {tab === 'juice' && (
+                    <span className="text-[10px] uppercase tracking-wide bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded">
+                      {(impliedProbability(a) * 100).toFixed(0)}% conf.
+                    </span>
+                  )}
+                </div>
                 <div className="text-sm text-zinc-400">
                   {a.legA.venue} {a.legA.side} ${a.legA.price.toFixed(3)} + {a.legB.venue} {a.legB.side} $
                   {a.legB.price.toFixed(3)}
@@ -159,11 +198,28 @@ export default function Dashboard() {
         ))}
         {sorted.length === 0 && !error && (
           <div className="text-zinc-600 py-20 text-center">
-            {connected ? 'Watching the books… no arb right now.' : 'Connecting to live stream…'}
+            {!connected
+              ? 'Connecting to live stream…'
+              : tab === 'juice'
+                ? 'No high-conviction picks resolving today right now — check back soon.'
+                : 'Watching the books… no arb right now.'}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function TabButton({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+        active ? 'border-green-400 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
