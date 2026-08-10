@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { MOCK_STREAM_PAIRS, mockStreamQuote } from '@/lib/mock-quotes';
-import type { Level } from '@/lib/sizing';
+import { MOCK_STREAM_PAIRS, mockStreamQuote } from '../../../lib/mock-quotes';
+import type { Level } from '../../../lib/sizing';
 
 export const dynamic = 'force-dynamic';
 
