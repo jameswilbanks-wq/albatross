@@ -1,5 +1,5 @@
-import { findArb, Quote } from '@/lib/arb-engine';
-import { MOCK_STREAM_PAIRS, mockStreamQuote } from '@/lib/mock-quotes';
+import { findArb, Quote } from '../../../../lib/arb-engine';
+import { MOCK_STREAM_PAIRS, mockStreamQuote } from '../../../../lib/mock-quotes';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs'; // Redis pub/sub needs a persistent TCP connection, not Edge
