@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { fetchKalshiMarkets, fetchPolymarketEvents, VenueMarket } from '@/lib/venues';
-import { embedText, verifyMatch, isOpenAiMockMode } from '@/lib/openai';
-import { cosineSimilarity } from '@/lib/vector';
-import { query } from '@/lib/db';
+import { fetchKalshiMarkets, fetchPolymarketEvents, VenueMarket } from '../../../lib/venues';
+import { embedText, verifyMatch, isOpenAiMockMode } from '../../../lib/openai';
+import { cosineSimilarity } from '../../../lib/vector';
+import { query } from '../../../lib/db';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // embedding + LLM calls over many markets can be slow
