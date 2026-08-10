@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { findArb, Quote } from '@/lib/arb-engine';
-import { PolyCategory } from '@/lib/fees';
-import pairs from '@/pairs.example.json';
+import { findArb, Quote } from '../../../lib/arb-engine';
+import { PolyCategory } from '../../../lib/fees';
+import pairs from '../../../pairs.example.json';
 
 export const dynamic = 'force-dynamic'; // never cache — this is polled every 2s
 
