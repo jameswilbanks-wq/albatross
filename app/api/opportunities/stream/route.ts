@@ -1,5 +1,5 @@
 import { findArb, Quote } from '../../../../lib/arb-engine';
-import { MOCK_STREAM_PAIRS, mockStreamQuote } from '../../../../lib/mock-quotes';
+import { MOCK_STREAM_PAIRS, mockStreamQuote, pairEventDateISO } from '../../../../lib/mock-quotes';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs'; // Redis pub/sub needs a persistent TCP connection, not Edge
@@ -77,6 +77,11 @@ export async function GET() {
 
       if (!mockMode && redisUrl) {
         // --- Real mode: subscribe to Redis, relay arb_new as quotes arrive ---
+        // NOTE: real-mode quotes don't carry eventDate (that lives in the
+        // `pairs` table in Postgres, not on the Redis quote payload), so
+        // opportunities from this path won't appear in the "Juice: Today"
+        // tab until that's wired up — same gap as the rest of real-mode
+        // metadata (title, category) documented elsewhere in this file.
         const { default: Redis } = await import('ioredis');
         const sub = new Redis(redisUrl);
         await sub.subscribe(QUOTES_CHANNEL);
@@ -107,7 +112,12 @@ export async function GET() {
             const quote = mockStreamQuote(pair, venue, t);
             const result = tracker.ingest(quote);
             if (result?.type === 'arb_new') {
-              send('arb_new', { ...result.opportunity, pairId: result.pairId, title: pair.title });
+              send('arb_new', {
+                ...result.opportunity,
+                pairId: result.pairId,
+                title: pair.title,
+                eventDate: pairEventDateISO(pair),
+              });
             } else if (result?.type === 'arb_closed') {
               send('arb_closed', { pairId: result.pairId, title: pair.title });
             }
